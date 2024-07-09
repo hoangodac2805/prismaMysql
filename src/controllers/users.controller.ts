@@ -1,41 +1,101 @@
 import express from "express";
 import bcrypt from "bcryptjs";
 import { z } from "zod";
+import jwt from "jsonwebtoken";
 import { HTTPSTATUS } from "../enums/HttpStatus";
-import { SALTPASS } from "../config";
+import { ERRORTYPE } from "../enums/ErrorType";
+import { JWTSALT, SALTPASS } from "../config";
 import { UserModel } from "../database/Users";
-import { userCreateSchema } from "../libs/zodSchemas/usersSchema";
-const CreateUser = async (req: express.Request, res: express.Response) => {
+import { loginSchema, userCreateSchema } from "../libs/zodSchemas/usersSchema";
+
+const Register = async (req: express.Request, res: express.Response) => {
   const { username, firstName, lastName, email, password } = req.body;
-
   try {
-    if (!username || !email || !password) {
-      return res
-        .status(HTTPSTATUS.BAD_REQUEST)
-        .send("Missing required fields: username, email, or password");
-    }
-
     userCreateSchema.parse({ username, email, password, firstName, lastName });
-
-    const existingUser = await UserModel.findUnique({ where: { email } });
-    if (existingUser) {
-      return res.status(HTTPSTATUS.CONFLICT).send("Email already in use");
-    }
-
     const hashPass = bcrypt.hashSync(password, SALTPASS);
     const newUser = await UserModel.create({
       data: { username, lastName, firstName, email, password: hashPass },
+      select: {
+        email: true,
+        lastName: true,
+        firstName: true,
+        username: true,
+      },
     });
-
     res.status(HTTPSTATUS.CREATED).send(newUser);
   } catch (error) {
     if (error instanceof z.ZodError) {
-      return res.status(HTTPSTATUS.BAD_REQUEST).send(error.errors);
+      return res.status(HTTPSTATUS.BAD_REQUEST).send(error);
+    }
+    res.status(HTTPSTATUS.INTERNAL_SERVER_ERROR).send(error);
+  }
+};
+
+const Login = async (req: express.Request, res: express.Response) => {
+  const { email, password } = req.body;
+  try {
+
+    loginSchema.parse({ email, password });
+
+    let user = await UserModel.findUnique({
+      where: {
+        email,
+      },
+    });
+
+    if (!user) {
+      return res.status(HTTPSTATUS.NOT_FOUND).send({
+        name: ERRORTYPE.DATA_ERROR,
+        issues: { message: "Tài khoản không tồn tại" },
+      });
+    }
+
+    if (!user.isActive) {
+      return res.status(HTTPSTATUS.CONFLICT).send({
+        name: ERRORTYPE.DATA_ERROR,
+        issues: {
+          message:
+            "Tài khoản chưa được kích hoạt, vui lòng kiểm tra email kích hoạt khoản",
+        },
+      });
+    }
+    
+    let checkPasword = bcrypt.compareSync(password, user.password);
+
+    if (!checkPasword) {
+      return res.status(HTTPSTATUS.CONFLICT).send({
+        name: ERRORTYPE.DATA_ERROR,
+        issues: {
+          message: "Email hoặc mật khẩu không chính xác, vui lòng thử lại",
+        },
+      });
+    }
+
+    const token = jwt.sign({ email: user.email, type: user.Role }, JWTSALT, {
+      expiresIn: 60 * 60 * 24 * 30,
+    });
+
+    let {
+      createdAt,
+      updatedAt,
+      tokenVersion,
+      password: _,
+      ...returnUser
+    } = user;
+
+    res.status(HTTPSTATUS.OK).send({
+      user: returnUser,
+      token,
+    });
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return res.status(HTTPSTATUS.BAD_REQUEST).send(error);
     }
     res.status(HTTPSTATUS.INTERNAL_SERVER_ERROR).send(error);
   }
 };
 
 export const UsersController = {
-  CreateUser
+  Register,
+  Login,
 };
