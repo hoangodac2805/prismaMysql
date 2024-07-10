@@ -7,16 +7,18 @@ import { UserModel } from "../../database/Users";
 import { ITokenPayload } from "../../types/Jwt";
 
 
-const authenticate = async (req: express.Request, res: express.Response, next: express.NextFunction) => {
+export const authenticate = async (req: express.Request, res: express.Response, next: express.NextFunction) => {
     try {
-        const token = req.header('token');
-        if (!token) {
+        const authHeader = req.header('Authorization');
+        if (!authHeader) {
             return res.status(HTTPSTATUS.UNAUTHORIZED).send({
                 name: ERRORTYPE.UNAUTHORIZED_ERROR,
                 issues: { message: "Vui lòng đăng nhập" }
             });
-
         }
+
+        const token = authHeader.replace("Bearer ","");
+
         const decode = jwt.verify(token, JWTSALT) as ITokenPayload;
         const user = await UserModel.findUnique({
             where: {
@@ -39,5 +41,3 @@ const authenticate = async (req: express.Request, res: express.Response, next: e
     }
 
 }
-
-export { authenticate }
