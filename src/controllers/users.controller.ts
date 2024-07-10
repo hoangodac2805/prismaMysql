@@ -59,7 +59,7 @@ const Login = async (req: express.Request, res: express.Response) => {
         },
       });
     }
-    
+
     let checkPasword = bcrypt.compareSync(password, user.password);
 
     if (!checkPasword) {
@@ -71,7 +71,7 @@ const Login = async (req: express.Request, res: express.Response) => {
       });
     }
 
-    const token = jwt.sign({ email: user.email, type: user.Role }, JWTSALT, {
+    const token = jwt.sign({ email: user.email, type: user.Role, tokenVersion: user.tokenVersion }, JWTSALT, {
       expiresIn: 60 * 60 * 24 * 30,
     });
 
@@ -94,6 +94,8 @@ const Login = async (req: express.Request, res: express.Response) => {
     res.status(HTTPSTATUS.INTERNAL_SERVER_ERROR).send(error);
   }
 };
+
+
 
 export const UsersController = {
   Register,
