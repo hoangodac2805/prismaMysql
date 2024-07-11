@@ -45,7 +45,6 @@ export const uploadToFireBase = async (file: IFileObject, folder: string) => {
             },
         };
     } catch (error) {
-        console.log(`error`, error);
         return {
             status: false, message: "Upload failed!!",
             data: {

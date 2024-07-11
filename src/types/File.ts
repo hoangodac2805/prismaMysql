@@ -1,4 +1,4 @@
-export interface IFileObject {
+export type IFileObject = {
     fieldname: string;
     originalname: string;
     encoding: string;
