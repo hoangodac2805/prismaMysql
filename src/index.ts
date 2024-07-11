@@ -7,8 +7,6 @@ import compression from "compression";
 import { router } from "./routers";
 
 
-
-
 const PORT = process.env.PORT || 8888;
 const app = express();
 /* ___________CONFIG_APP______________ */
