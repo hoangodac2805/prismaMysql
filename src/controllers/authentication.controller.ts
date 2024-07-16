@@ -14,15 +14,16 @@ const Register = async (req: express.Request, res: express.Response) => {
     userCreateSchema.parse({ username, email, password, firstName, lastName });
     const checkEmailUsed = await UserModel.findUnique({
       where: {
-        email
-      }, select: {
-        id: true
-      }
-    })
+        email,
+      },
+      select: {
+        id: true,
+      },
+    });
     if (checkEmailUsed) {
       return res.status(HTTPSTATUS.BAD_REQUEST).send({
         name: ERRORTYPE.DATA_ERROR,
-        issues: { message: "Email đã được sử dụng, vui lòng chọn email khác!" },
+        message: "Email đã được sử dụng, vui lòng chọn email khác!",
       });
     }
     const hashPass = bcrypt.hashSync(password, SALTPASS);
@@ -47,7 +48,6 @@ const Register = async (req: express.Request, res: express.Response) => {
 const Login = async (req: express.Request, res: express.Response) => {
   const { email, password } = req.body;
   try {
-
     loginSchema.parse({ email, password });
 
     let user = await UserModel.findUnique({
@@ -59,17 +59,15 @@ const Login = async (req: express.Request, res: express.Response) => {
     if (!user) {
       return res.status(HTTPSTATUS.NOT_FOUND).send({
         name: ERRORTYPE.DATA_ERROR,
-        issues: { message: "Tài khoản không tồn tại" },
+        message: "Tài khoản không tồn tại",
       });
     }
 
     if (!user.isActive) {
       return res.status(HTTPSTATUS.BAD_REQUEST).send({
         name: ERRORTYPE.DATA_ERROR,
-        issues: {
-          message:
-            "Tài khoản chưa được kích hoạt, vui lòng kiểm tra email kích hoạt khoản",
-        },
+        message:
+          "Tài khoản chưa được kích hoạt, vui lòng kiểm tra email kích hoạt khoản",
       });
     }
 
@@ -78,15 +76,17 @@ const Login = async (req: express.Request, res: express.Response) => {
     if (!checkPasword) {
       return res.status(HTTPSTATUS.BAD_REQUEST).send({
         name: ERRORTYPE.DATA_ERROR,
-        issues: {
-          message: "Email hoặc mật khẩu không chính xác, vui lòng thử lại",
-        },
+        message: "Email hoặc mật khẩu không chính xác, vui lòng thử lại",
       });
     }
 
-    const token = jwt.sign({ email: user.email, type: user.Role, tokenVersion: user.tokenVersion }, JWTSALT, {
-      expiresIn: 60 * 60 * 24 * 30,
-    });
+    const token = jwt.sign(
+      { email: user.email, type: user.Role, tokenVersion: user.tokenVersion },
+      JWTSALT,
+      {
+        expiresIn: 60 * 60 * 24 * 30,
+      }
+    );
 
     let {
       createdAt,
@@ -107,7 +107,6 @@ const Login = async (req: express.Request, res: express.Response) => {
     res.status(HTTPSTATUS.INTERNAL_SERVER_ERROR).send(error);
   }
 };
-
 
 export const AuthenticationController = {
   Register,
