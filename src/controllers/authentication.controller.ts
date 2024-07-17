@@ -36,7 +36,7 @@ const Register = async (req: express.Request, res: express.Response) => {
         username: true,
       },
     });
-    res.status(HTTPSTATUS.CREATED).send({ user });
+    return res.status(HTTPSTATUS.CREATED).send({ user });
   } catch (error) {
     if (error instanceof z.ZodError) {
       return res.status(HTTPSTATUS.BAD_REQUEST).send(error);

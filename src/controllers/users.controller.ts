@@ -2,6 +2,7 @@ import express from "express";
 import { z } from "zod";
 import bcrypt from "bcryptjs";
 import { UserModel } from "../database/Users";
+import { Role } from "@prisma/client";
 import {
   convertArrayFileToObject,
   createBooleanCondition,
@@ -14,9 +15,11 @@ import { AVATAR_EXT, STORAGE_DIR, SALTPASS } from "../config";
 import { HTTPSTATUS } from "../enums/HttpStatus";
 import { ERRORTYPE } from "../enums/ErrorType";
 import { deleteFileFromFireBase, uploadToFireBase } from "../services/firebase";
-import { userCreateSchema } from "../libs/zodSchemas/usersSchema";
+import {
+  passwordSchema,
+  userCreateSchema,
+} from "../libs/zodSchemas/usersSchema";
 import { getUsersWithQuery } from "../services/userService";
-import { Role } from "@prisma/client";
 
 const CreateUser = async (req: express.Request, res: express.Response) => {
   try {
@@ -188,10 +191,38 @@ const GetUserByEmail = async (req: express.Request, res: express.Response) => {
   }
 };
 
+const ChangeUserPassword = async (
+  req: express.Request,
+  res: express.Response
+) => {
+  try {
+    const { id, newPassword } = req.body;
+    passwordSchema.parse({ password: newPassword });
+    const hashPass = bcrypt.hashSync(newPassword, SALTPASS);
+    const updatedUser = await UserModel.update({
+      where: {
+        id,
+      },
+      data: {
+        password: hashPass,
+        tokenVersion: { increment: 1 },
+      },
+    });
+
+    return res.status(HTTPSTATUS.OK).send({ user: updatedUser });
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return res.status(HTTPSTATUS.BAD_REQUEST).send(error);
+    }
+    res.status(HTTPSTATUS.INTERNAL_SERVER_ERROR).send(error);
+  }
+};
+
 export const UsersController = {
   CreateUser,
   GetUsers,
   GetUserByID,
   GetUserByEmail,
-  GetUserParams
+  GetUserParams,
+  ChangeUserPassword,
 };
