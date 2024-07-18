@@ -7,6 +7,7 @@ import {
   convertArrayFileToObject,
   createBooleanCondition,
   createPaginate,
+  getPriorityRole,
   handleGetNumber,
   isNumber,
   validateFile,
@@ -20,6 +21,7 @@ import {
   userCreateSchema,
 } from "../libs/zodSchemas/usersSchema";
 import { getUsersWithQuery } from "../services/userService";
+import { error } from "console";
 
 const CreateUser = async (req: express.Request, res: express.Response) => {
   try {
@@ -218,6 +220,46 @@ const ChangeUserPassword = async (
   }
 };
 
+const DeleteUser = async (req: express.Request, res: express.Response) => {
+  try {
+    const { id } = req.body;
+    const requestUser = req.user;
+
+    const deleteUser = await UserModel.findUnique({
+      where: {
+        id,
+      },
+      select: {
+        Role: true,
+      },
+    });
+    if (
+      getPriorityRole(requestUser?.Role) <= getPriorityRole(deleteUser?.Role)
+    ) {
+      return res.status(HTTPSTATUS.FORBIDDEN).send({
+        name: ERRORTYPE.FORBIDDEN,
+        issues: {
+          message: "Bạn không đủ quyền để thực hiện hành động này!",
+        },
+      });
+    }
+
+    UserModel.delete({
+      where: {
+        id,
+      },
+    })
+      .then(() => {
+        res.status(HTTPSTATUS.OK).send({ user: {} });
+      })
+      .catch(() => {
+        res.status(HTTPSTATUS.INTERNAL_SERVER_ERROR).send(error);
+      });
+  } catch (error) {
+    res.status(HTTPSTATUS.INTERNAL_SERVER_ERROR).send(error);
+  }
+};
+
 export const UsersController = {
   CreateUser,
   GetUsers,
@@ -225,4 +267,5 @@ export const UsersController = {
   GetUserByEmail,
   GetUserParams,
   ChangeUserPassword,
+  DeleteUser,
 };

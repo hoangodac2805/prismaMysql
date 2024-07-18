@@ -19,7 +19,7 @@ usersRouter.post(
 usersRouter.get("/getMany", UsersController.GetUsers);
 usersRouter.get("/getByID", UsersController.GetUserByID);
 usersRouter.get("/getByEmail", UsersController.GetUserByEmail);
-usersRouter.get("/GetUserParams/:id", UsersController.GetUserParams);
+usersRouter.get("/getUserParams/:id", UsersController.GetUserParams);
 usersRouter.put(
   "/changePassword",
   authenticate,
@@ -27,5 +27,11 @@ usersRouter.put(
   checkExist(UserModel),
   UsersController.ChangeUserPassword
 );
-
+usersRouter.delete(
+  "/delete",
+  authenticate,
+  authorize(["ADMIN", "SUPERADMIN"]),
+  checkExist(UserModel),
+  UsersController.DeleteUser
+);
 export { usersRouter };

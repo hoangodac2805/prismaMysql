@@ -1,7 +1,7 @@
 import express from "express";
 import { IFileObject } from "../types/File";
 import { Pagination } from "../types/Common";
-import { Prisma, User } from "@prisma/client";
+import { Prisma, Role, User } from "@prisma/client";
 import { string } from "zod";
 export const validateFile = (
   file: IFileObject,
@@ -75,4 +75,17 @@ export const isNumber = (input: any): boolean => {
     (typeof input === "string" || typeof input === "number") &&
     !isNaN(Number(input))
   );
+};
+
+export const getPriorityRole = (role?: Role): number => {
+  switch (role) {
+    case "USER":
+      return 0;
+    case "ADMIN":
+      return 1;
+    case "SUPERADMIN":
+      return 2;
+    default:
+      return 0;
+  }
 };
