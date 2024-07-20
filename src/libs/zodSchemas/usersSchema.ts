@@ -45,3 +45,7 @@ export const loginSchema = z.object({
 export const passwordSchema = z.object({
   password: passwordField,
 });
+
+export const emailSchema = z.object({
+  email: emailField,
+});

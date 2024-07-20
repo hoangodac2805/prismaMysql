@@ -25,9 +25,9 @@ export const validateFile = (
 
 export const convertArrayFileToObject = (req: express.Request) => {
   const arrayfiles: IFileObject[] = req.files as IFileObject[];
-  return Object.fromEntries(
+  return arrayfiles ?  Object.fromEntries(
     arrayfiles.map((file: IFileObject) => [file.fieldname, file])
-  );
+  ) : {}
 };
 
 export const handleGetNumber = (
@@ -89,3 +89,17 @@ export const getPriorityRole = (role?: Role): number => {
       return 0;
   }
 };
+
+export const generateFieldToSelect = <T>(
+  fields: Array<keyof T>
+): Record<keyof T, true> => {
+
+  const selection: Record<string, true> = {};
+  
+  fields.forEach((field) => {
+    selection[field as string] = true;
+  });
+  
+  return selection as Record<keyof T, true>;
+};
+

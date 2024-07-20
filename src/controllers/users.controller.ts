@@ -2,21 +2,28 @@ import express from "express";
 import { z } from "zod";
 import bcrypt from "bcryptjs";
 import { UserModel } from "../database/Users";
-import { Role } from "@prisma/client";
+import { Role, User } from "@prisma/client";
 import {
   convertArrayFileToObject,
   createBooleanCondition,
   createPaginate,
+  generateFieldToSelect,
   getPriorityRole,
   handleGetNumber,
   isNumber,
   validateFile,
 } from "../utils";
-import { AVATAR_EXT, STORAGE_DIR, SALTPASS } from "../config";
+import {
+  AVATAR_EXT,
+  STORAGE_DIR,
+  SALTPASS,
+  USER_FIELD_SELECT,
+} from "../config";
 import { HTTPSTATUS } from "../enums/HttpStatus";
 import { ERRORTYPE } from "../enums/ErrorType";
 import { deleteFileFromFireBase, uploadToFireBase } from "../services/firebase";
 import {
+  emailSchema,
   passwordSchema,
   userCreateSchema,
 } from "../libs/zodSchemas/usersSchema";
@@ -26,34 +33,11 @@ import { error } from "console";
 const CreateUser = async (req: express.Request, res: express.Response) => {
   try {
     const { username, firstName, lastName, email, password, Role } = req.body;
+    
     const files = convertArrayFileToObject(req);
-
     let { avatar } = files;
 
-    userCreateSchema.parse({
-      username,
-      email,
-      password,
-      firstName,
-      lastName,
-      Role,
-    });
-
-    const checkEmailUsed = await UserModel.findUnique({
-      where: {
-        email,
-      },
-      select: {
-        id: true,
-      },
-    });
-    if (checkEmailUsed) {
-      return res.status(HTTPSTATUS.BAD_REQUEST).send({
-        name: ERRORTYPE.DATA_ERROR,
-        message: "Email đã được sử dụng, vui lòng chọn email khác!",
-      });
-    }
-
+    
     if (avatar) {
       let validateFileProcess = validateFile(avatar, AVATAR_EXT);
       if (!validateFileProcess.status) {
@@ -71,7 +55,7 @@ const CreateUser = async (req: express.Request, res: express.Response) => {
       : { fileName: null, downloadURL: null };
 
     const hashPass = bcrypt.hashSync(password, SALTPASS);
-
+    
     UserModel.create({
       data: {
         username,
@@ -81,17 +65,6 @@ const CreateUser = async (req: express.Request, res: express.Response) => {
         Role,
         password: hashPass,
         avatar: avatarURL,
-      },
-      select: {
-        id: true,
-        email: true,
-        lastName: true,
-        firstName: true,
-        username: true,
-        avatar: true,
-        Role: true,
-        createdAt: true,
-        updatedAt: true,
       },
     })
       .then((user) => {
@@ -144,6 +117,7 @@ const GetUserParams = async (req: express.Request, res: express.Response) => {
       where: {
         id: Number(id),
       },
+      select: USER_FIELD_SELECT.COMMON,
     });
     if (!user) {
       return res.status(HTTPSTATUS.NOT_FOUND).send({ user: null });
@@ -166,6 +140,7 @@ const GetUserByID = async (req: express.Request, res: express.Response) => {
       where: {
         id: Number(id),
       },
+      select: USER_FIELD_SELECT.COMMON,
     });
     if (!user) {
       return res.status(HTTPSTATUS.NOT_FOUND).send({ user: null });
@@ -183,6 +158,7 @@ const GetUserByEmail = async (req: express.Request, res: express.Response) => {
       where: {
         email,
       },
+      select: USER_FIELD_SELECT.COMMON,
     });
     if (!user) {
       return res.status(HTTPSTATUS.NOT_FOUND).send({ user: null });
@@ -209,6 +185,7 @@ const ChangeUserPassword = async (
         password: hashPass,
         tokenVersion: { increment: 1 },
       },
+      select: USER_FIELD_SELECT.COMMON,
     });
 
     return res.status(HTTPSTATUS.OK).send({ user: updatedUser });
@@ -260,6 +237,96 @@ const DeleteUser = async (req: express.Request, res: express.Response) => {
   }
 };
 
+const UpdateEmail = async (req: express.Request, res: express.Response) => {
+  try {
+    const { id, email } = req.body;
+    const requestUser = req.user;
+
+    const updateUser = await UserModel.findUnique({
+      where: {
+        id,
+      },
+      select: {
+        Role: true,
+      },
+    });
+    emailSchema.parse({ email });
+
+    if (
+      getPriorityRole(requestUser?.Role) <= getPriorityRole(updateUser?.Role)
+    ) {
+      return res.status(HTTPSTATUS.FORBIDDEN).send({
+        name: ERRORTYPE.FORBIDDEN,
+        issues: {
+          message: "Bạn không đủ quyền để thực hiện hành động này!",
+        },
+      });
+    }
+
+    let user = await UserModel.update({
+      where: {
+        id,
+      },
+      data: {
+        email,
+      },
+      select: USER_FIELD_SELECT.COMMON,
+    });
+    return res.status(HTTPSTATUS.OK).send({ user });
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return res.status(HTTPSTATUS.BAD_REQUEST).send(error);
+    }
+    res.status(HTTPSTATUS.INTERNAL_SERVER_ERROR).send(error);
+  }
+};
+
+const UpdateUserName = async (req: express.Request, res: express.Response) => {
+  try {
+    const { id, username } = req.body;
+    const requestUser = req.user;
+
+    const updateUser = await UserModel.findUnique({
+      where: {
+        id,
+      },
+      select: {
+        Role: true,
+      },
+    });
+
+    if (
+      getPriorityRole(requestUser?.Role) <= getPriorityRole(updateUser?.Role)
+    ) {
+      return res.status(HTTPSTATUS.FORBIDDEN).send({
+        name: ERRORTYPE.FORBIDDEN,
+        issues: {
+          message: "Bạn không đủ quyền để thực hiện hành động này!",
+        },
+      });
+    }
+
+    UserModel.update({
+      where: {
+        id,
+      },
+      data: {
+        username,
+      },
+      select: USER_FIELD_SELECT.COMMON,
+    }).then((user) => {
+      return res.status(HTTPSTATUS.OK).send({
+        user,
+      });
+    });
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return res.status(HTTPSTATUS.BAD_REQUEST).send(error);
+    }
+    res.status(HTTPSTATUS.INTERNAL_SERVER_ERROR).send(error);
+  }
+};
+1;
 export const UsersController = {
   CreateUser,
   GetUsers,
@@ -268,4 +335,6 @@ export const UsersController = {
   GetUserParams,
   ChangeUserPassword,
   DeleteUser,
+  UpdateEmail,
+  UpdateUserName,
 };

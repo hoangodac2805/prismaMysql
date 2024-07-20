@@ -1,5 +1,6 @@
 import { Role, User } from "@prisma/client";
 import { UserModel } from "../database/Users";
+import { USER_FIELD_SELECT } from "../config";
 
 interface Filters {
   search?: string;
@@ -30,19 +31,7 @@ export const getUsersWithQuery = async (filters: Filters) => {
           Role ? { Role: Role } : {},
         ],
       },
-      select: {
-        id: true,
-        email: true,
-        lastName: true,
-        firstName: true,
-        username: true,
-        avatar: true,
-        Role: true,
-        isActive: true,
-        tokenVersion: true,
-        createdAt: true,
-        updatedAt: true,
-      },
+      select: USER_FIELD_SELECT.COMMON,
     }),
     UserModel.count({
       where: {
