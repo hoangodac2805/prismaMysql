@@ -2,7 +2,7 @@ import express from "express";
 import { z } from "zod";
 import bcrypt from "bcryptjs";
 import { UserModel } from "../database/Users";
-import { Role, User } from "@prisma/client";
+import { Role } from "@prisma/client";
 import {
   convertArrayFileToObject,
   createBooleanCondition,
@@ -32,30 +32,11 @@ import { error } from "console";
 
 const CreateUser = async (req: express.Request, res: express.Response) => {
   try {
-    const { username, firstName, lastName, email, password, Role } = req.body;
-    
-    const files = convertArrayFileToObject(req);
-    let { avatar } = files;
-
-    
-    if (avatar) {
-      let validateFileProcess = validateFile(avatar, AVATAR_EXT);
-      if (!validateFileProcess.status) {
-        return res.status(HTTPSTATUS.BAD_REQUEST).send({
-          name: ERRORTYPE.DATA_ERROR,
-          issues: {
-            message: validateFileProcess.message,
-          },
-        });
-      }
-    }
-
-    let { fileName, downloadURL: avatarURL } = avatar
-      ? (await uploadToFireBase(avatar, STORAGE_DIR.USER_AVATAR)).data
-      : { fileName: null, downloadURL: null };
+    const { username, firstName, lastName, email, password, Role, avatar } =
+      req.body;
 
     const hashPass = bcrypt.hashSync(password, SALTPASS);
-    
+
     UserModel.create({
       data: {
         username,
@@ -64,15 +45,16 @@ const CreateUser = async (req: express.Request, res: express.Response) => {
         email,
         Role,
         password: hashPass,
-        avatar: avatarURL,
+        avatar: avatar.downloadURL,
       },
+      select: USER_FIELD_SELECT.COMMON,
     })
       .then((user) => {
         res.status(HTTPSTATUS.CREATED).send({ user });
       })
       .catch((error) => {
-        if (fileName != null) {
-          deleteFileFromFireBase(AVATAR_EXT + "/" + fileName);
+        if (avatar.fileName != null) {
+          deleteFileFromFireBase(AVATAR_EXT + "/" + avatar.fileName);
         }
         res.status(HTTPSTATUS.INTERNAL_SERVER_ERROR).send(error);
       });
