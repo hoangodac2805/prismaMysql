@@ -21,14 +21,13 @@ import {
 } from "../config";
 import { HTTPSTATUS } from "../enums/HttpStatus";
 import { ERRORTYPE } from "../enums/ErrorType";
-import { deleteFileFromFireBase, uploadToFireBase } from "../services/firebase";
+import { deleteFileFromFireBase } from "../services/firebase";
 import {
   emailSchema,
   passwordSchema,
   userCreateSchema,
 } from "../libs/zodSchemas/usersSchema";
 import { getUsersWithQuery } from "../services/userService";
-import { error } from "console";
 
 const CreateUser = async (req: express.Request, res: express.Response) => {
   try {
@@ -62,6 +61,7 @@ const CreateUser = async (req: express.Request, res: express.Response) => {
     if (error instanceof z.ZodError) {
       return res.status(HTTPSTATUS.BAD_REQUEST).send(error);
     }
+
     res.status(HTTPSTATUS.INTERNAL_SERVER_ERROR).send(error);
   }
 };
@@ -90,20 +90,12 @@ const GetUsers = async (req: express.Request, res: express.Response) => {
 const GetUserParams = async (req: express.Request, res: express.Response) => {
   try {
     let { id } = req.params;
-    if (!id || !isNumber(id))
-      return res.status(HTTPSTATUS.BAD_REQUEST).send({
-        name: ERRORTYPE.DATA_ERROR,
-        message: "Id không hợp lệ",
-      });
     const user = await UserModel.findUnique({
       where: {
         id: Number(id),
       },
       select: USER_FIELD_SELECT.COMMON,
     });
-    if (!user) {
-      return res.status(HTTPSTATUS.NOT_FOUND).send({ user: null });
-    }
     return res.status(HTTPSTATUS.NOT_FOUND).send({ user });
   } catch (error) {
     res.status(HTTPSTATUS.INTERNAL_SERVER_ERROR).send(error);
@@ -113,20 +105,13 @@ const GetUserParams = async (req: express.Request, res: express.Response) => {
 const GetUserByID = async (req: express.Request, res: express.Response) => {
   try {
     let id = req.query.id || req.body.id;
-    if (!id || !isNumber(id))
-      return res.status(HTTPSTATUS.BAD_REQUEST).send({
-        name: ERRORTYPE.DATA_ERROR,
-        message: "Id không hợp lệ",
-      });
     const user = await UserModel.findUnique({
       where: {
         id: Number(id),
       },
       select: USER_FIELD_SELECT.COMMON,
     });
-    if (!user) {
-      return res.status(HTTPSTATUS.NOT_FOUND).send({ user: null });
-    }
+
     return res.status(HTTPSTATUS.NOT_FOUND).send({ user });
   } catch (error) {
     res.status(HTTPSTATUS.INTERNAL_SERVER_ERROR).send(error);
@@ -142,9 +127,7 @@ const GetUserByEmail = async (req: express.Request, res: express.Response) => {
       },
       select: USER_FIELD_SELECT.COMMON,
     });
-    if (!user) {
-      return res.status(HTTPSTATUS.NOT_FOUND).send({ user: null });
-    }
+
     return res.status(HTTPSTATUS.NOT_FOUND).send({ user });
   } catch (error) {
     res.status(HTTPSTATUS.INTERNAL_SERVER_ERROR).send(error);
@@ -211,7 +194,7 @@ const DeleteUser = async (req: express.Request, res: express.Response) => {
       .then(() => {
         res.status(HTTPSTATUS.OK).send({ user: {} });
       })
-      .catch(() => {
+      .catch((error) => {
         res.status(HTTPSTATUS.INTERNAL_SERVER_ERROR).send(error);
       });
   } catch (error) {
@@ -308,7 +291,11 @@ const UpdateUserName = async (req: express.Request, res: express.Response) => {
     res.status(HTTPSTATUS.INTERNAL_SERVER_ERROR).send(error);
   }
 };
-1;
+
+const UpdateAvatar = async (req:express.Request,res:express.Response) =>{
+  
+}
+
 export const UsersController = {
   CreateUser,
   GetUsers,

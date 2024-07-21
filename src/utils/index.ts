@@ -1,10 +1,8 @@
 import express from "express";
-import { IFileObject } from "../types/File";
 import { Pagination } from "../types/Common";
-import { Prisma, Role, User } from "@prisma/client";
-import { string } from "zod";
+import { Role } from "@prisma/client";
 export const validateFile = (
-  file: IFileObject,
+  file: Express.Multer.File,
   ext: string[],
   size: number = 1000000
 ) => {
@@ -24,9 +22,9 @@ export const validateFile = (
 };
 
 export const convertArrayFileToObject = (req: express.Request) => {
-  const arrayfiles: IFileObject[] = req.files as IFileObject[];
+  const arrayfiles: Express.Multer.File[] = req.files as Express.Multer.File[];
   return arrayfiles ?  Object.fromEntries(
-    arrayfiles.map((file: IFileObject) => [file.fieldname, file])
+    arrayfiles.map((file: Express.Multer.File) => [file.fieldname, file])
   ) : {}
 };
 

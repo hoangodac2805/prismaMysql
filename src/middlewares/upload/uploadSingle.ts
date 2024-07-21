@@ -1,11 +1,9 @@
 import express from "express";
-import multer from "multer";
 import { validateFile } from "../../utils";
 import { HTTPSTATUS } from "../../enums/HttpStatus";
 import { ERRORTYPE } from "../../enums/ErrorType";
 import { uploadToFireBase } from "../../services/firebase";
 
-const storage = multer.memoryStorage();
 
 export const UploadSingle = (
   key: string,

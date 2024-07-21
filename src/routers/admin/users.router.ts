@@ -29,9 +29,17 @@ usersRouter.post(
   UsersController.CreateUser
 );
 usersRouter.get("/getMany", UsersController.GetUsers);
-usersRouter.get("/getByID", UsersController.GetUserByID);
-usersRouter.get("/getByEmail", UsersController.GetUserByEmail);
-usersRouter.get("/getUserParams/:id", UsersController.GetUserParams);
+usersRouter.get("/getByID", checkExist(UserModel), UsersController.GetUserByID);
+usersRouter.get(
+  "/getByEmail",
+  checkExist(UserModel, "email"),
+  UsersController.GetUserByEmail
+);
+usersRouter.get(
+  "/getUserParams/:id",
+  checkExist(UserModel),
+  UsersController.GetUserParams
+);
 usersRouter.put(
   "/changePassword",
   authenticate,
