@@ -1,4 +1,5 @@
 export enum ERRORTYPE {
     DATA_ERROR = "DataError",
-    UNAUTHORIZED_ERROR = "Unauthorized"
+    UNAUTHORIZED_ERROR = "Unauthorized",
+    FORBIDDEN = "Forbiden"
 }

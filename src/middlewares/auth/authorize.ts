@@ -11,4 +11,3 @@ export const authorize = (whiteList: Role[] = []) => {
         return res.status(HTTPSTATUS.FORBIDDEN).send({ message: "Permission Denied" })
     }
 }
-

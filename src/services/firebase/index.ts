@@ -6,7 +6,6 @@ import {
     uploadBytesResumable,
     deleteObject
 } from "firebase/storage";
-import { IFileObject } from "../../types/File";
 
 
 const FIREBASE_STORAGE = {
@@ -21,7 +20,7 @@ initializeApp(FIREBASE_STORAGE);
 
 const storage = getStorage();
 
-export const uploadToFireBase = async (file: IFileObject, folder: string) => {
+export const uploadToFireBase = async (file: Express.Multer.File, folder: string) => {
     try {
         const buffer = file.buffer;
         const dateTime = Date.now().toString();
