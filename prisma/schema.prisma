@@ -5,8 +5,8 @@
 // Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
 
 generator client {
-  provider = "prisma-client-js"
-  previewFeatures = ["fullTextSearch","fullTextIndex"]
+  provider        = "prisma-client-js"
+  previewFeatures = ["fullTextSearch", "fullTextIndex"]
 }
 
 datasource db {
@@ -15,18 +15,31 @@ datasource db {
 }
 
 model User {
-  id Int @id @default(autoincrement())
-  username String
-  firstName String?
-  lastName String?
-  email String @unique
-  password String
-  isActive Boolean @default(true)
-  avatar String?
-  tokenVersion Int @default(0)
-  Role Role @default(USER)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id           Int      @id @default(autoincrement())
+  userName     String
+  firstName    String?
+  lastName     String?
+  email        String   @unique
+  password     String
+  isActive     Boolean  @default(true)
+  avatar       Avatar?  @relation("CurrentAvatar")
+  usedAvatars  Avatar[] @relation("UsedAvatars")
+  tokenVersion Int      @default(0)
+  role         Role     @default(USER)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  avatarId     Int?
+}
+
+model Avatar {
+  id            Int      @id @default(autoincrement())
+  url           String
+  currentUser   User?    @relation("CurrentAvatar", fields: [currentUserId], references: [id], onDelete: Cascade)
+  currentUserId Int?     @unique
+  usedUser      User     @relation("UsedAvatars", fields: [usedUserId], references: [id], onDelete: Cascade)
+  usedUserId    Int
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 }
 
 enum Role {
@@ -34,5 +47,3 @@ enum Role {
   ADMIN
   SUPERADMIN
 }
-
-

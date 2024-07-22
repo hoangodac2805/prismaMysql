@@ -31,20 +31,22 @@ import { getUsersWithQuery } from "../services/userService";
 
 const CreateUser = async (req: express.Request, res: express.Response) => {
   try {
-    const { username, firstName, lastName, email, password, Role, avatar } =
+    const { userName, firstName, lastName, email, password, role, avatar } =
       req.body;
 
     const hashPass = bcrypt.hashSync(password, SALTPASS);
 
     UserModel.create({
       data: {
-        username,
+        userName,
         lastName,
         firstName,
         email,
-        Role,
+        role,
         password: hashPass,
-        avatar: avatar.downloadURL,
+        avatar: {
+          
+        },
       },
       select: USER_FIELD_SELECT.COMMON,
     })
@@ -68,7 +70,7 @@ const CreateUser = async (req: express.Request, res: express.Response) => {
 
 const GetUsers = async (req: express.Request, res: express.Response) => {
   try {
-    let { page = 1, take = 10, search = "", Role, isActive } = req.query;
+    let { page = 1, take = 10, search = "", role, isActive } = req.query;
     page = handleGetNumber(page, 1);
     take = handleGetNumber(take, 1);
     let skip = (page - 1) * take;
@@ -76,7 +78,7 @@ const GetUsers = async (req: express.Request, res: express.Response) => {
       skip,
       take,
       search: search as string,
-      Role: Role as Role,
+      role: role as Role,
       isActive: createBooleanCondition(isActive as string),
     });
     res
@@ -172,11 +174,11 @@ const DeleteUser = async (req: express.Request, res: express.Response) => {
         id,
       },
       select: {
-        Role: true,
+        role: true,
       },
     });
     if (
-      getPriorityRole(requestUser?.Role) <= getPriorityRole(deleteUser?.Role)
+      getPriorityRole(requestUser?.role) <= getPriorityRole(deleteUser?.role)
     ) {
       return res.status(HTTPSTATUS.FORBIDDEN).send({
         name: ERRORTYPE.FORBIDDEN,
@@ -212,13 +214,13 @@ const UpdateEmail = async (req: express.Request, res: express.Response) => {
         id,
       },
       select: {
-        Role: true,
+        role: true,
       },
     });
     emailSchema.parse({ email });
 
     if (
-      getPriorityRole(requestUser?.Role) <= getPriorityRole(updateUser?.Role)
+      getPriorityRole(requestUser?.role) <= getPriorityRole(updateUser?.role)
     ) {
       return res.status(HTTPSTATUS.FORBIDDEN).send({
         name: ERRORTYPE.FORBIDDEN,
@@ -248,7 +250,7 @@ const UpdateEmail = async (req: express.Request, res: express.Response) => {
 
 const UpdateUserName = async (req: express.Request, res: express.Response) => {
   try {
-    const { id, username } = req.body;
+    const { id, userName } = req.body;
     const requestUser = req.user;
 
     const updateUser = await UserModel.findUnique({
@@ -256,12 +258,12 @@ const UpdateUserName = async (req: express.Request, res: express.Response) => {
         id,
       },
       select: {
-        Role: true,
+        role: true,
       },
     });
 
     if (
-      getPriorityRole(requestUser?.Role) <= getPriorityRole(updateUser?.Role)
+      getPriorityRole(requestUser?.role) <= getPriorityRole(updateUser?.role)
     ) {
       return res.status(HTTPSTATUS.FORBIDDEN).send({
         name: ERRORTYPE.FORBIDDEN,
@@ -276,7 +278,7 @@ const UpdateUserName = async (req: express.Request, res: express.Response) => {
         id,
       },
       data: {
-        username,
+        userName,
       },
       select: USER_FIELD_SELECT.COMMON,
     }).then((user) => {
@@ -292,9 +294,7 @@ const UpdateUserName = async (req: express.Request, res: express.Response) => {
   }
 };
 
-const UpdateAvatar = async (req:express.Request,res:express.Response) =>{
-  
-}
+const UpdateAvatar = async (req: express.Request, res: express.Response) => {};
 
 export const UsersController = {
   CreateUser,

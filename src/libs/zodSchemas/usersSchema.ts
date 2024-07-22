@@ -34,7 +34,7 @@ export const userCreateSchema = z.object({
   lastName: stringField(),
   email: emailField,
   password: passwordField,
-  Role: roleField,
+  role: roleField,
 });
 
 export const loginSchema = z.object({

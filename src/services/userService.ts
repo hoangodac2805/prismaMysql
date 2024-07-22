@@ -5,13 +5,13 @@ import { USER_FIELD_SELECT } from "../config";
 interface Filters {
   search?: string;
   isActive?: boolean;
-  Role?: Role;
+  role?: Role;
   skip: number;
   take: number;
 }
 
 export const getUsersWithQuery = async (filters: Filters) => {
-  const { search = "", isActive, Role, skip, take } = filters;
+  const { search = "", isActive, role, skip, take } = filters;
 
   const [users, count] = await Promise.all([
     UserModel.findMany({
@@ -24,11 +24,11 @@ export const getUsersWithQuery = async (filters: Filters) => {
               { firstName: { contains: search } },
               { lastName: { contains: search } },
               { email: { contains: search } },
-              { username: { contains: search } },
+              { userName: { contains: search } },
             ],
           },
           isActive ? { isActive: isActive } : {},
-          Role ? { Role: Role } : {},
+          role ? { role: role } : {},
         ],
       },
       select: USER_FIELD_SELECT.COMMON,
@@ -41,11 +41,11 @@ export const getUsersWithQuery = async (filters: Filters) => {
               { firstName: { contains: search } },
               { lastName: { contains: search } },
               { email: { contains: search } },
-              { username: { contains: search } },
+              { userName: { contains: search } },
             ],
           },
           isActive ? { isActive: isActive } : {},
-          Role ? { Role: Role } : {},
+          role ? { role: role } : {},
         ],
       },
     }),
