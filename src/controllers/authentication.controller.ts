@@ -9,9 +9,9 @@ import { UserModel } from "../database/Users";
 import { loginSchema, userCreateSchema } from "../libs/zodSchemas/usersSchema";
 
 const Register = async (req: express.Request, res: express.Response) => {
-  const { username, firstName, lastName, email, password } = req.body;
+  const { userName, firstName, lastName, email, password } = req.body;
   try {
-    userCreateSchema.parse({ username, email, password, firstName, lastName });
+    userCreateSchema.parse({ userName, email, password, firstName, lastName });
     const checkEmailUsed = await UserModel.findUnique({
       where: {
         email,
@@ -28,12 +28,12 @@ const Register = async (req: express.Request, res: express.Response) => {
     }
     const hashPass = bcrypt.hashSync(password, SALTPASS);
     const user = await UserModel.create({
-      data: { username, lastName, firstName, email, password: hashPass },
+      data: { userName, lastName, firstName, email, password: hashPass },
       select: {
         email: true,
         lastName: true,
         firstName: true,
-        username: true,
+        userName: true,
       },
     });
     return res.status(HTTPSTATUS.CREATED).send({ user });
@@ -81,7 +81,7 @@ const Login = async (req: express.Request, res: express.Response) => {
     }
 
     const token = jwt.sign(
-      { email: user.email, type: user.Role, tokenVersion: user.tokenVersion },
+      { email: user.email, type: user.role, tokenVersion: user.tokenVersion },
       JWTSALT,
       {
         expiresIn: 60 * 60 * 24 * 30,

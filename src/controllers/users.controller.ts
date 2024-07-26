@@ -1,21 +1,16 @@
 import express from "express";
-import { z } from "zod";
+import { date, z } from "zod";
 import bcrypt from "bcryptjs";
 import { UserModel } from "../database/Users";
 import { Role } from "@prisma/client";
 import {
-  convertArrayFileToObject,
   createBooleanCondition,
   createPaginate,
-  generateFieldToSelect,
   getPriorityRole,
   handleGetNumber,
-  isNumber,
-  validateFile,
 } from "../utils";
 import {
   AVATAR_EXT,
-  STORAGE_DIR,
   SALTPASS,
   USER_FIELD_SELECT,
 } from "../config";
@@ -25,9 +20,9 @@ import { deleteFileFromFireBase } from "../services/firebase";
 import {
   emailSchema,
   passwordSchema,
-  userCreateSchema,
 } from "../libs/zodSchemas/usersSchema";
 import { getUsersWithQuery } from "../services/userService";
+import { AvatarModel } from "../database/Avatars";
 
 const CreateUser = async (req: express.Request, res: express.Response) => {
   try {
@@ -35,6 +30,10 @@ const CreateUser = async (req: express.Request, res: express.Response) => {
       req.body;
 
     const hashPass = bcrypt.hashSync(password, SALTPASS);
+
+    const userAvatar = await AvatarModel.create({
+      data: { url: avatar.downloadURL }
+    })
 
     UserModel.create({
       data: {
@@ -45,8 +44,11 @@ const CreateUser = async (req: express.Request, res: express.Response) => {
         role,
         password: hashPass,
         avatar: {
-          
+          connect: { id: userAvatar.id }
         },
+        usedAvatars: {
+          connect: [{ id: userAvatar.id }]
+        }
       },
       select: USER_FIELD_SELECT.COMMON,
     })
@@ -56,6 +58,11 @@ const CreateUser = async (req: express.Request, res: express.Response) => {
       .catch((error) => {
         if (avatar.fileName != null) {
           deleteFileFromFireBase(AVATAR_EXT + "/" + avatar.fileName);
+          AvatarModel.delete({
+            where: {
+              id: userAvatar.id
+            }
+          })
         }
         res.status(HTTPSTATUS.INTERNAL_SERVER_ERROR).send(error);
       });
@@ -294,7 +301,41 @@ const UpdateUserName = async (req: express.Request, res: express.Response) => {
   }
 };
 
-const UpdateAvatar = async (req: express.Request, res: express.Response) => {};
+const UpdateAvatar = async (req: express.Request, res: express.Response) => {
+  try {
+    const { id, avatar } = req.body;
+
+    const newAvatar = await AvatarModel.create({
+      data: {
+        url: avatar.downloadURL
+      }
+    });
+
+    const user = await UserModel.update({
+      where: { id: Number(id) },
+      data: {
+        avatar: { connect: { id: newAvatar.id } },
+        usedAvatars: { connect: [{ id: newAvatar.id }] }
+      }
+    })
+
+    return res.status(HTTPSTATUS.OK).send({
+      user
+    });
+  } catch (error) {
+    res.status(HTTPSTATUS.INTERNAL_SERVER_ERROR).send(error);
+  }
+};
+
+const UpdateAvatarByUsed = async (req: express.Request, res: express.Response) => {
+  try {
+    const { id, avatarUUID } = req.body;
+    
+
+  } catch (error) {
+    res.status(HTTPSTATUS.INTERNAL_SERVER_ERROR).send(error);
+  }
+}
 
 export const UsersController = {
   CreateUser,
@@ -306,4 +347,5 @@ export const UsersController = {
   DeleteUser,
   UpdateEmail,
   UpdateUserName,
+  UpdateAvatar
 };
