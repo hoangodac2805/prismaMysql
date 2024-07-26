@@ -54,6 +54,18 @@ usersRouter.put(
   checkExist(UserModel),
   UsersController.UpdateEmail
 );
+
+usersRouter.put(
+  "/updateAvatar",
+  authenticate,
+  authorize(["ADMIN", "SUPERADMIN"]),
+  upload.single("avatar"),
+  checkExist(UserModel),
+  UploadSingle("avatar", STORAGE_DIR.USER_AVATAR, {
+    ext: AVATAR_EXT,
+  }),
+  UsersController.UpdateAvatar
+);
 usersRouter.delete(
   "/delete",
   authenticate,
