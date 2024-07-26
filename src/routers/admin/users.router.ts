@@ -12,6 +12,7 @@ import {
 import { userCreateSchema } from "../../libs/zodSchemas/usersSchema";
 import { UploadSingle } from "../../middlewares/upload/uploadSingle";
 import { AVATAR_EXT, STORAGE_DIR } from "../../config";
+import { checkPermission } from "../../middlewares/auth/checkPermission";
 
 const usersRouter = express.Router();
 const upload = multer();
@@ -45,6 +46,7 @@ usersRouter.put(
   authenticate,
   authorize(["ADMIN", "SUPERADMIN"]),
   checkExist(UserModel),
+  checkPermission,
   UsersController.ChangeUserPassword
 );
 usersRouter.put(
@@ -52,7 +54,52 @@ usersRouter.put(
   authenticate,
   authorize(["ADMIN", "SUPERADMIN"]),
   checkExist(UserModel),
+  checkPermission,
   UsersController.UpdateEmail
+);
+
+usersRouter.put(
+  "/updateUserName",
+  authenticate,
+  authorize(["ADMIN", "SUPERADMIN"]),
+  checkExist(UserModel),
+  checkPermission,
+  UsersController.UpdateUserName
+);
+usersRouter.put(
+  "/updateFirstName",
+  authenticate,
+  authorize(["ADMIN", "SUPERADMIN"]),
+  checkExist(UserModel),
+  checkPermission,
+  UsersController.UpdateFirstName
+);
+
+usersRouter.put(
+  "/updateLastName",
+  authenticate,
+  authorize(["ADMIN", "SUPERADMIN"]),
+  checkExist(UserModel),
+  checkPermission,
+  UsersController.UpdateLastName
+);
+
+usersRouter.put(
+  "/active",
+  authenticate,
+  authorize(["ADMIN", "SUPERADMIN"]),
+  checkExist(UserModel),
+  checkPermission,
+  UsersController.ActiveUser
+);
+
+usersRouter.put(
+  "/inactive",
+  authenticate,
+  authorize(["ADMIN", "SUPERADMIN"]),
+  checkExist(UserModel),
+  checkPermission,
+  UsersController.InactiveUser
 );
 
 usersRouter.put(
@@ -61,16 +108,28 @@ usersRouter.put(
   authorize(["ADMIN", "SUPERADMIN"]),
   upload.single("avatar"),
   checkExist(UserModel),
+  checkPermission,
   UploadSingle("avatar", STORAGE_DIR.USER_AVATAR, {
     ext: AVATAR_EXT,
   }),
   UsersController.UpdateAvatar
 );
+
+usersRouter.put(
+  "/updateAvatarByUsed",
+  authenticate,
+  authorize(["ADMIN", "SUPERADMIN"]),
+  checkExist(UserModel),
+  checkPermission,
+  UsersController.UpdateAvatarByUsed
+);
+
 usersRouter.delete(
   "/delete",
   authenticate,
   authorize(["ADMIN", "SUPERADMIN"]),
   checkExist(UserModel),
+  checkPermission,
   UsersController.DeleteUser
 );
 

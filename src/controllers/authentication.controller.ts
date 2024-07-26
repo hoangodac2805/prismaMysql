@@ -54,6 +54,10 @@ const Login = async (req: express.Request, res: express.Response) => {
       where: {
         email,
       },
+      include:{
+        avatar: true,
+        usedAvatars:true
+      }
     });
 
     if (!user) {

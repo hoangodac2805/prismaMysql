@@ -33,7 +33,7 @@ model User {
 
 model Avatar {
   id            Int      @id @default(autoincrement())
-  uuid          String   @default(uuid())
+  uuid          String   @unique @default(uuid())
   url           String    
   currentUser   User?    @relation("CurrentAvatar", fields: [currentUserId], references: [id], onDelete: Cascade)
   currentUserId Int?     @unique
