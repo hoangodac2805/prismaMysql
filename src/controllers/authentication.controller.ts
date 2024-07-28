@@ -4,7 +4,7 @@ import { z } from "zod";
 import jwt from "jsonwebtoken";
 import { HTTPSTATUS } from "../enums/HttpStatus";
 import { ERRORTYPE } from "../enums/ErrorType";
-import { JWTSALT, SALTPASS } from "../config";
+import { JWTSALT, SALTPASS, USER_FIELD_SELECT } from "../config";
 import { UserModel } from "../database/Users";
 import { loginSchema, userCreateSchema } from "../libs/zodSchemas/usersSchema";
 
@@ -29,12 +29,7 @@ const Register = async (req: express.Request, res: express.Response) => {
     const hashPass = bcrypt.hashSync(password, SALTPASS);
     const user = await UserModel.create({
       data: { userName, lastName, firstName, email, password: hashPass },
-      select: {
-        email: true,
-        lastName: true,
-        firstName: true,
-        userName: true,
-      },
+      select: USER_FIELD_SELECT.COMMON,
     });
     return res.status(HTTPSTATUS.CREATED).send({ user });
   } catch (error) {
@@ -48,16 +43,18 @@ const Register = async (req: express.Request, res: express.Response) => {
 const Login = async (req: express.Request, res: express.Response) => {
   const { email, password } = req.body;
   try {
+console.log(`1`, email,password);
+
     loginSchema.parse({ email, password });
 
     let user = await UserModel.findUnique({
       where: {
         email,
       },
-      include:{
+      include: {
         avatar: true,
-        usedAvatars:true
-      }
+        usedAvatars: true,
+      },
     });
 
     if (!user) {
@@ -92,13 +89,7 @@ const Login = async (req: express.Request, res: express.Response) => {
       }
     );
 
-    let {
-      createdAt,
-      updatedAt,
-      tokenVersion,
-      password: _,
-      ...returnUser
-    } = user;
+    let { password: _, ...returnUser } = user;
 
     res.status(HTTPSTATUS.OK).send({
       user: returnUser,
@@ -112,7 +103,18 @@ const Login = async (req: express.Request, res: express.Response) => {
   }
 };
 
+const VerifyToken = async (req: express.Request, res: express.Response) => {
+  try {
+    const { password, ...returnUser } = req.user;
+    res.status(HTTPSTATUS.OK).send({
+      user: returnUser,
+    });
+  } catch (error) {
+    res.status(HTTPSTATUS.INTERNAL_SERVER_ERROR).send(error);
+  }
+};
 export const AuthenticationController = {
   Register,
   Login,
+  VerifyToken,
 };

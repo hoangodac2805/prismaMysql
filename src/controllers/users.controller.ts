@@ -10,7 +10,6 @@ import {
 } from "../utils";
 import { AVATAR_EXT, SALTPASS, USER_FIELD_SELECT } from "../config";
 import { HTTPSTATUS } from "../enums/HttpStatus";
-import { ERRORTYPE } from "../enums/ErrorType";
 import { deleteFileFromFireBase } from "../services/firebase";
 import { emailSchema, passwordSchema } from "../libs/zodSchemas/usersSchema";
 import { getUsersWithQuery } from "../services/userService";
