@@ -10,7 +10,7 @@ export const checkExist = (model: ModelType, key: string = "id") => {
   return async (req: Request, res: Response, next: NextFunction) => {
     let item;
     let keyValue = req.params[key] || req.body[key] || req.query[key];
-
+      
     if (keyValue) {
       if (key === "id") {
         keyValue = Number(keyValue);

@@ -23,6 +23,10 @@ export const authenticate = async (req: express.Request, res: express.Response, 
         const user = await UserModel.findUnique({
             where: {
                 email: decode.email,
+            },
+            include:{
+                avatar:true,
+                usedAvatars:true
             }
         })
 
@@ -33,7 +37,7 @@ export const authenticate = async (req: express.Request, res: express.Response, 
             });
         }
 
-        req.user = user
+        req.user = user;
 
         next();
     } catch (error) {

@@ -5,7 +5,7 @@ import express from "express";
 export const authorize = (whiteList: Role[] = []) => {
     return (req: express.Request, res: express.Response, next: express.NextFunction) => {
         const { user } = req;
-        if (whiteList.includes(user?.Role as Role)) {
+        if (whiteList.includes(user?.role as Role)) {
             return next();
         }
         return res.status(HTTPSTATUS.FORBIDDEN).send({ message: "Permission Denied" })

@@ -29,12 +29,12 @@ const roleField = z
   .optional();
 
 export const userCreateSchema = z.object({
-  username: stringField(true, 1),
+  userName: stringField(true, 1),
   firstName: stringField(),
   lastName: stringField(),
   email: emailField,
   password: passwordField,
-  Role: roleField,
+  role: roleField,
 });
 
 export const loginSchema = z.object({

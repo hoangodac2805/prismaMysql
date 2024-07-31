@@ -2,49 +2,45 @@ import express from "express";
 import { z } from "zod";
 import bcrypt from "bcryptjs";
 import { UserModel } from "../database/Users";
-import { Role } from "@prisma/client";
+import { Avatar, Role } from "@prisma/client";
 import {
-  convertArrayFileToObject,
   createBooleanCondition,
   createPaginate,
-  generateFieldToSelect,
-  getPriorityRole,
   handleGetNumber,
-  isNumber,
-  validateFile,
 } from "../utils";
-import {
-  AVATAR_EXT,
-  STORAGE_DIR,
-  SALTPASS,
-  USER_FIELD_SELECT,
-} from "../config";
+import { AVATAR_EXT, SALTPASS, USER_FIELD_SELECT } from "../config";
 import { HTTPSTATUS } from "../enums/HttpStatus";
-import { ERRORTYPE } from "../enums/ErrorType";
 import { deleteFileFromFireBase } from "../services/firebase";
-import {
-  emailSchema,
-  passwordSchema,
-  userCreateSchema,
-} from "../libs/zodSchemas/usersSchema";
+import { emailSchema, passwordSchema } from "../libs/zodSchemas/usersSchema";
 import { getUsersWithQuery } from "../services/userService";
+import { AvatarModel } from "../database/Avatars";
 
 const CreateUser = async (req: express.Request, res: express.Response) => {
   try {
-    const { username, firstName, lastName, email, password, Role, avatar } =
+    const { userName, firstName, lastName, email, password, role, avatar } =
       req.body;
 
     const hashPass = bcrypt.hashSync(password, SALTPASS);
-
+    let userAvatar: Avatar | undefined = undefined;
+    if (avatar.downloadURL) {
+      userAvatar = await AvatarModel.create({
+        data: { url: avatar.downloadURL },
+      });
+    }
     UserModel.create({
       data: {
-        username,
+        userName,
         lastName,
         firstName,
         email,
-        Role,
+        role,
         password: hashPass,
-        avatar: avatar.downloadURL,
+        avatar: userAvatar ? {
+          connect: { id: userAvatar.id },
+        } : undefined,
+        usedAvatars: userAvatar ? {
+          connect: [{ id: userAvatar.id }],
+        } : undefined,
       },
       select: USER_FIELD_SELECT.COMMON,
     })
@@ -54,6 +50,13 @@ const CreateUser = async (req: express.Request, res: express.Response) => {
       .catch((error) => {
         if (avatar.fileName != null) {
           deleteFileFromFireBase(AVATAR_EXT + "/" + avatar.fileName);
+          if (userAvatar) {
+            AvatarModel.delete({
+              where: {
+                id: userAvatar.id,
+              },
+            });
+          }
         }
         res.status(HTTPSTATUS.INTERNAL_SERVER_ERROR).send(error);
       });
@@ -68,7 +71,7 @@ const CreateUser = async (req: express.Request, res: express.Response) => {
 
 const GetUsers = async (req: express.Request, res: express.Response) => {
   try {
-    let { page = 1, take = 10, search = "", Role, isActive } = req.query;
+    let { page = 1, take = 10, search = "", role, isActive } = req.query;
     page = handleGetNumber(page, 1);
     take = handleGetNumber(take, 1);
     let skip = (page - 1) * take;
@@ -76,7 +79,7 @@ const GetUsers = async (req: express.Request, res: express.Response) => {
       skip,
       take,
       search: search as string,
-      Role: Role as Role,
+      role: role as Role,
       isActive: createBooleanCondition(isActive as string),
     });
     res
@@ -165,30 +168,10 @@ const ChangeUserPassword = async (
 const DeleteUser = async (req: express.Request, res: express.Response) => {
   try {
     const { id } = req.body;
-    const requestUser = req.user;
-
-    const deleteUser = await UserModel.findUnique({
-      where: {
-        id,
-      },
-      select: {
-        Role: true,
-      },
-    });
-    if (
-      getPriorityRole(requestUser?.Role) <= getPriorityRole(deleteUser?.Role)
-    ) {
-      return res.status(HTTPSTATUS.FORBIDDEN).send({
-        name: ERRORTYPE.FORBIDDEN,
-        issues: {
-          message: "Bạn không đủ quyền để thực hiện hành động này!",
-        },
-      });
-    }
 
     UserModel.delete({
       where: {
-        id,
+        id: Number(id),
       },
     })
       .then(() => {
@@ -205,32 +188,12 @@ const DeleteUser = async (req: express.Request, res: express.Response) => {
 const UpdateEmail = async (req: express.Request, res: express.Response) => {
   try {
     const { id, email } = req.body;
-    const requestUser = req.user;
 
-    const updateUser = await UserModel.findUnique({
-      where: {
-        id,
-      },
-      select: {
-        Role: true,
-      },
-    });
     emailSchema.parse({ email });
-
-    if (
-      getPriorityRole(requestUser?.Role) <= getPriorityRole(updateUser?.Role)
-    ) {
-      return res.status(HTTPSTATUS.FORBIDDEN).send({
-        name: ERRORTYPE.FORBIDDEN,
-        issues: {
-          message: "Bạn không đủ quyền để thực hiện hành động này!",
-        },
-      });
-    }
 
     let user = await UserModel.update({
       where: {
-        id,
+        id: Number(id),
       },
       data: {
         email,
@@ -248,35 +211,14 @@ const UpdateEmail = async (req: express.Request, res: express.Response) => {
 
 const UpdateUserName = async (req: express.Request, res: express.Response) => {
   try {
-    const { id, username } = req.body;
-    const requestUser = req.user;
-
-    const updateUser = await UserModel.findUnique({
-      where: {
-        id,
-      },
-      select: {
-        Role: true,
-      },
-    });
-
-    if (
-      getPriorityRole(requestUser?.Role) <= getPriorityRole(updateUser?.Role)
-    ) {
-      return res.status(HTTPSTATUS.FORBIDDEN).send({
-        name: ERRORTYPE.FORBIDDEN,
-        issues: {
-          message: "Bạn không đủ quyền để thực hiện hành động này!",
-        },
-      });
-    }
+    const { id, userName } = req.body;
 
     UserModel.update({
       where: {
-        id,
+        id: Number(id),
       },
       data: {
-        username,
+        userName,
       },
       select: USER_FIELD_SELECT.COMMON,
     }).then((user) => {
@@ -292,9 +234,160 @@ const UpdateUserName = async (req: express.Request, res: express.Response) => {
   }
 };
 
-const UpdateAvatar = async (req:express.Request,res:express.Response) =>{
-  
-}
+const UpdateFirstName = async (req: express.Request, res: express.Response) => {
+  try {
+    const { id, firstName } = req.body;
+
+    UserModel.update({
+      where: {
+        id: Number(id),
+      },
+      data: {
+        firstName,
+      },
+      select: USER_FIELD_SELECT.COMMON,
+    }).then((user) => {
+      return res.status(HTTPSTATUS.OK).send({
+        user,
+      });
+    });
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return res.status(HTTPSTATUS.BAD_REQUEST).send(error);
+    }
+    res.status(HTTPSTATUS.INTERNAL_SERVER_ERROR).send(error);
+  }
+};
+
+const UpdateLastName = async (req: express.Request, res: express.Response) => {
+  try {
+    const { id, lastName } = req.body;
+
+    UserModel.update({
+      where: {
+        id: Number(id),
+      },
+      data: {
+        lastName,
+      },
+      select: USER_FIELD_SELECT.COMMON,
+    }).then((user) => {
+      return res.status(HTTPSTATUS.OK).send({
+        user,
+      });
+    });
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return res.status(HTTPSTATUS.BAD_REQUEST).send(error);
+    }
+    res.status(HTTPSTATUS.INTERNAL_SERVER_ERROR).send(error);
+  }
+};
+
+const ActiveUser = async (req: express.Request, res: express.Response) => {
+  try {
+    const { id } = req.body;
+
+    UserModel.update({
+      where: {
+        id: Number(id),
+      },
+      data: {
+        isActive: true,
+      },
+      select: USER_FIELD_SELECT.COMMON,
+    }).then((user) => {
+      return res.status(HTTPSTATUS.OK).send({
+        user,
+      });
+    });
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return res.status(HTTPSTATUS.BAD_REQUEST).send(error);
+    }
+    res.status(HTTPSTATUS.INTERNAL_SERVER_ERROR).send(error);
+  }
+};
+
+const InactiveUser = async (req: express.Request, res: express.Response) => {
+  try {
+    const { id } = req.body;
+
+    UserModel.update({
+      where: {
+        id: Number(id),
+      },
+      data: {
+        isActive: false,
+      },
+      select: USER_FIELD_SELECT.COMMON,
+    }).then((user) => {
+      return res.status(HTTPSTATUS.OK).send({
+        user,
+      });
+    });
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return res.status(HTTPSTATUS.BAD_REQUEST).send(error);
+    }
+    res.status(HTTPSTATUS.INTERNAL_SERVER_ERROR).send(error);
+  }
+};
+
+const UpdateAvatar = async (req: express.Request, res: express.Response) => {
+  try {
+    const { id, avatar } = req.body;
+
+    const newAvatar = await AvatarModel.create({
+      data: {
+        url: avatar.downloadURL,
+      },
+    });
+    console.log(`newAvatar`, newAvatar);
+    const user = await UserModel.update({
+      where: { id: Number(id) },
+      data: {
+        avatar: { connect: { id: newAvatar.id } },
+        usedAvatars: { connect: [{ id: newAvatar.id }] },
+      },
+      select: USER_FIELD_SELECT.COMMON,
+    });
+
+    return res.status(HTTPSTATUS.OK).send({
+      user,
+    });
+  } catch (error) {
+    res.status(HTTPSTATUS.INTERNAL_SERVER_ERROR).send(error);
+  }
+};
+
+const UpdateAvatarByUsed = async (
+  req: express.Request,
+  res: express.Response
+) => {
+  try {
+    const { id, avatarId } = req.body;
+
+    const user = await UserModel.update({
+      where: {
+        id: Number(id),
+      },
+      data: {
+        avatar: {
+          connect: {
+            id: Number(avatarId),
+          },
+        },
+      },
+      select: USER_FIELD_SELECT.COMMON,
+    });
+    return res.status(HTTPSTATUS.OK).send({
+      user,
+    });
+  } catch (error) {
+    res.status(HTTPSTATUS.INTERNAL_SERVER_ERROR).send(error);
+  }
+};
 
 export const UsersController = {
   CreateUser,
@@ -306,4 +399,10 @@ export const UsersController = {
   DeleteUser,
   UpdateEmail,
   UpdateUserName,
+  UpdateFirstName,
+  UpdateLastName,
+  ActiveUser,
+  InactiveUser,
+  UpdateAvatar,
+  UpdateAvatarByUsed,
 };

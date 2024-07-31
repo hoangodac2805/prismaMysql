@@ -1,4 +1,4 @@
-import { User } from "@prisma/client";
+import { Prisma, User } from "@prisma/client";
 import bcrypt from "bcryptjs";
 import { generateFieldToSelect } from "../utils";
 
@@ -15,17 +15,17 @@ export const STORAGE_DIR = {
 export const AVATAR_EXT = ["image/jpeg", "image/png"];
 
 export const USER_FIELD_SELECT = {
-  COMMON: generateFieldToSelect<User>([
+  COMMON: generateFieldToSelect<Prisma.UserSelect>([
     "id",
     "email",
-    "username",
+    "userName",
     "lastName",
     "firstName",
-    "username",
     "avatar",
+    "usedAvatars",
     "isActive",
     "tokenVersion",
-    "Role",
+    "role",
     "createdAt",
     "updatedAt",
   ]),
