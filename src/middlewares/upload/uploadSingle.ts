@@ -4,7 +4,6 @@ import { HTTPSTATUS } from "../../enums/HttpStatus";
 import { ERRORTYPE } from "../../enums/ErrorType";
 import { uploadToFireBase } from "../../services/firebase";
 
-
 export const UploadSingle = (
   key: string,
   dest: string,
@@ -17,14 +16,13 @@ export const UploadSingle = (
   ) => {
     try {
       const file = req.file;
+      console.log(file);
       if (file) {
         let validateFileProcess = validateFile(file, validateParams.ext);
         if (!validateFileProcess.status) {
           return res.status(HTTPSTATUS.BAD_REQUEST).send({
             name: ERRORTYPE.DATA_ERROR,
-            issues: {
-              message: validateFileProcess.message,
-            },
+            message: validateFileProcess.message,
           });
         }
       }

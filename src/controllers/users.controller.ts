@@ -2,7 +2,7 @@ import express from "express";
 import { z } from "zod";
 import bcrypt from "bcryptjs";
 import { UserModel } from "../database/Users";
-import { Role } from "@prisma/client";
+import { Avatar, Role } from "@prisma/client";
 import {
   createBooleanCondition,
   createPaginate,
@@ -21,11 +21,12 @@ const CreateUser = async (req: express.Request, res: express.Response) => {
       req.body;
 
     const hashPass = bcrypt.hashSync(password, SALTPASS);
-
-    const userAvatar = await AvatarModel.create({
-      data: { url: avatar.downloadURL },
-    });
-
+    let userAvatar: Avatar | undefined = undefined;
+    if (avatar.downloadURL) {
+      userAvatar = await AvatarModel.create({
+        data: { url: avatar.downloadURL },
+      });
+    }
     UserModel.create({
       data: {
         userName,
@@ -34,12 +35,12 @@ const CreateUser = async (req: express.Request, res: express.Response) => {
         email,
         role,
         password: hashPass,
-        avatar: {
+        avatar: userAvatar ? {
           connect: { id: userAvatar.id },
-        },
-        usedAvatars: {
+        } : undefined,
+        usedAvatars: userAvatar ? {
           connect: [{ id: userAvatar.id }],
-        },
+        } : undefined,
       },
       select: USER_FIELD_SELECT.COMMON,
     })
@@ -49,11 +50,13 @@ const CreateUser = async (req: express.Request, res: express.Response) => {
       .catch((error) => {
         if (avatar.fileName != null) {
           deleteFileFromFireBase(AVATAR_EXT + "/" + avatar.fileName);
-          AvatarModel.delete({
-            where: {
-              id: userAvatar.id,
-            },
-          });
+          if (userAvatar) {
+            AvatarModel.delete({
+              where: {
+                id: userAvatar.id,
+              },
+            });
+          }
         }
         res.status(HTTPSTATUS.INTERNAL_SERVER_ERROR).send(error);
       });
