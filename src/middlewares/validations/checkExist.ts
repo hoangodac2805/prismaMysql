@@ -9,7 +9,7 @@ type ModelType = PrismaClient[keyof PrismaClient];
 export const checkExist = (model: ModelType, key: string = "id") => {
   return async (req: Request, res: Response, next: NextFunction) => {
     let item;
-    let keyValue = req.params[key] || req.body[key] || req.query[key];
+    let keyValue = req.params[key] || req.query[key] || req.body[key] ;
       
     if (keyValue) {
       if (key === "id") {

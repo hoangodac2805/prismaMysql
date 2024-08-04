@@ -55,6 +55,7 @@ usersRouter.put(
   authorize(["ADMIN", "SUPERADMIN"]),
   checkExist(UserModel),
   checkPermission,
+  validateEmailExist,
   UsersController.UpdateEmail
 );
 

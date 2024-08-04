@@ -10,18 +10,22 @@ export const checkPermission = async (
   next: express.NextFunction
 ) => {
   try {
-    const { id } = req.body;
+    const { id } =  req.query || req.params || req.body;
     const requestUser = req.user;
+    console.log(requestUser);
     if (requestUser?.role === "SUPERADMIN") {
       return next();
     }
+    
     const updateUser = await UserModel.findUnique({
       where: { id:Number(id) },
       select: {
         role: true,
       },
     });
-
+ 
+    console.log(updateUser);
+    
     if (
       getPriorityRole(requestUser?.role) <= getPriorityRole(updateUser?.role)
     ) {

@@ -93,13 +93,14 @@ const GetUsers = async (req: express.Request, res: express.Response) => {
 const GetUserParams = async (req: express.Request, res: express.Response) => {
   try {
     let { id } = req.params;
+    console.log(`id`, id);
     const user = await UserModel.findUnique({
       where: {
         id: Number(id),
       },
       select: USER_FIELD_SELECT.COMMON,
     });
-    return res.status(HTTPSTATUS.NOT_FOUND).send({ user });
+    return res.status(HTTPSTATUS.OK).send({ user });
   } catch (error) {
     res.status(HTTPSTATUS.INTERNAL_SERVER_ERROR).send(error);
   }
@@ -167,7 +168,7 @@ const ChangeUserPassword = async (
 
 const DeleteUser = async (req: express.Request, res: express.Response) => {
   try {
-    const { id } = req.body;
+    const { id } = req.query || req.params;
 
     UserModel.delete({
       where: {
