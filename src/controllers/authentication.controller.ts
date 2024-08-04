@@ -45,7 +45,7 @@ const Register = async (req: express.Request, res: express.Response) => {
 const Login = async (req: express.Request, res: express.Response) => {
   const { email, password } = req.body;
   try {
-console.log(`1`, email,password);
+  console.log(`1`, email,password);
 
     loginSchema.parse({ email, password });
 
