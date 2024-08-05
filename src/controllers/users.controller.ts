@@ -368,7 +368,7 @@ const UpdateAvatarByUsed = async (
 ) => {
   try {
     const { id, avatarId } = req.body;
-
+    console.log(`id,avatar`, id,avatarId);
     const user = await UserModel.update({
       where: {
         id: Number(id),
@@ -376,7 +376,7 @@ const UpdateAvatarByUsed = async (
       data: {
         avatar: {
           connect: {
-            id: Number(avatarId),
+            uuid: avatarId,
           },
         },
       },
