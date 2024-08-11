@@ -134,6 +134,15 @@ usersRouter.delete(
   UsersController.DeleteUser
 );
 
+usersRouter.put(
+  "/deleteUsedAvatar",
+  authenticate,
+  authorize(["ADMIN", "SUPERADMIN"]),
+  checkExist(UserModel),
+  checkPermission,
+  UsersController.DeleteUsedAvatar
+);
+
 usersRouter.post(
   "/test",
   upload.single("avatar"),

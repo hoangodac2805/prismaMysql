@@ -186,6 +186,31 @@ const DeleteUser = async (req: express.Request, res: express.Response) => {
   }
 };
 
+const DeleteUsedAvatar = async (req: express.Request, res: express.Response) => {
+  try {
+    const { id, avatarUUID } = req.body;
+
+    const user = await UserModel.update({
+      where: {
+        id: Number(id),
+      },
+      data: {
+        usedAvatars: {
+          delete: {
+            uuid: avatarUUID
+          }
+        }
+      },
+      select: USER_FIELD_SELECT.COMMON,
+    });
+    return res.status(HTTPSTATUS.OK).send({
+      user,
+    });
+  } catch (error) {
+    res.status(HTTPSTATUS.INTERNAL_SERVER_ERROR).send(error);
+  }
+};
+
 const UpdateEmail = async (req: express.Request, res: express.Response) => {
   try {
     const { id, email } = req.body;
@@ -367,8 +392,7 @@ const UpdateAvatarByUsed = async (
   res: express.Response
 ) => {
   try {
-    const { id, avatarId } = req.body;
-    console.log(`id,avatar`, id,avatarId);
+    const { id, avatarUUID } = req.body;
     const user = await UserModel.update({
       where: {
         id: Number(id),
@@ -376,7 +400,7 @@ const UpdateAvatarByUsed = async (
       data: {
         avatar: {
           connect: {
-            uuid: avatarId,
+            uuid: avatarUUID,
           },
         },
       },
@@ -389,6 +413,8 @@ const UpdateAvatarByUsed = async (
     res.status(HTTPSTATUS.INTERNAL_SERVER_ERROR).send(error);
   }
 };
+
+
 
 export const UsersController = {
   CreateUser,
@@ -406,4 +432,5 @@ export const UsersController = {
   InactiveUser,
   UpdateAvatar,
   UpdateAvatarByUsed,
+  DeleteUsedAvatar
 };
